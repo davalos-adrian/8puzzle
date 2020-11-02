@@ -1,18 +1,116 @@
-import {useState, useEffect} from 'react';
+import { update } from 'lodash';
+import {useState} from 'react';
 import Square from './Square';
+var _ = require('lodash');
 
 
+Array.prototype.inArray = function(comparer) { 
+  for(var i=0; i < this.length; i++) { 
+      if(comparer(this[i])) return true; 
+  }
+  return false; 
+}; 
 
-function createGraph(initialState) {
-  let graph = {};
-  //TODO Create graph given initialState
-  return graph;
+// adds an element to the array if it does not already exist using a comparer 
+// function
+Array.prototype.pushIfNotExist = function(element, comparer) { 
+  if (!this.inArray(comparer)) {
+      this.push(element);
+  }
+};
+
+function areEqual(a , b) {
+  for(let i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
-function solve(squares) {
-  let graph = createGraph(squares);
-  //TODO Solve 8 puzzle given states in graph
-  console.log("Finished");
+
+let finalState = [null, 1, 2, 3, 4, 5, 6, 7, 8];
+const lineLength = 3;
+const boardLength = 9;
+
+function subNodes(node) {
+  let moves = [1, 2, 3, 4] //Up, Left, Down, Right
+  let solution = [];
+  let index = node.findIndex((element) => element == null );
+  for (let i = 1; i <= 4; i++){
+    let nodeReturn = node.slice()
+    switch(i){
+      case 1:
+        if (index >= lineLength) {
+          let temp = nodeReturn[index - lineLength];
+          nodeReturn[index - lineLength] = null;
+          nodeReturn[index] = temp;
+        }
+        break;
+      case 2:
+        if (index % 3 !== 0) {
+          let temp = nodeReturn[index - 1];
+          nodeReturn[index - 1] = null;
+          nodeReturn[index] = temp;
+        }
+        break;
+      case 3:
+        if (index < boardLength - lineLength) {
+          let temp = nodeReturn[index + lineLength];
+          nodeReturn[index + lineLength] = null;
+          nodeReturn[index] = temp;
+        }
+        break;
+      case 4:
+        if ( (index + 1) % 3 !== 0) {
+          let temp = nodeReturn[index + 1];
+          nodeReturn[index + 1] = null;
+          nodeReturn[index] = temp;
+        }
+        break;
+      default:
+        break;
+    }
+    if(!areEqual(nodeReturn, node)){
+      solution.push(nodeReturn)
+    }
+  }
+  return solution;
+}
+
+async function dfs(initialState, updateSquares) {
+  let visited = [];
+  let queue = []
+  queue.push({'state':initialState})
+  while(queue.length > 0) {
+    let node = queue.shift();
+    visited.push(node.toString());
+    updateSquares(node.state);
+    if (_.isEqual(node.state, finalState)) {
+      alert('finished');
+      updateSquares(node.state);
+      console.log("finished")
+      return queue;
+    }
+    let possiblePaths = subNodes(node.state);
+    for (let i = 0; i < possiblePaths.length; i++){
+      if ( !visited.includes( possiblePaths[i].toString() )) {
+        queue.push({'state': possiblePaths[i]});
+        visited.push(possiblePaths[i].toString())
+      }
+    }
+  }
+  
+  
+}
+
+
+function solve(initialState, updateSquares) {
+  dfs(initialState, updateSquares);
+  //console.log("finished");
+  
+  
+  
 }
 
 
@@ -56,13 +154,7 @@ function Game(props) {
     setSquares(sqrs);
     setCurrentValue(currentValue + 1);
   }
-  
-
-  
-
-
   const instructions = 'Haz click en las casillas para escoger el estado inicial';
-  
   return (
     <div className="game">
       <p>
@@ -75,7 +167,7 @@ function Game(props) {
       {currentValue > 8 ? <button 
                             className='btn'
                             onClick={ () => {
-                              solve(squares);
+                              solve(squares, setSquares);
                           }}>Resolver</button> : null}
 
       </div>
